@@ -1,0 +1,33 @@
+[webserver]
+port = ":8081"
+
+# register data providers
+[[providers]]
+name = "cadastre_live_bd_full"           # provider name is referenced from map layers
+type = "postgis"        # the type of data provider. currently only supports postgis
+host = "localhost"      # postgis database host
+port = 5432             # postgis database port
+database = "cadastre_live_bd_full"       # postgis database name
+user = "postgres"         # postgis database user
+password = "postgres"           # postgis database password
+srid = 4326             # The default srid for this provider. If not provided it will be WebMercator (3857)4326
+
+  [[providers.layers]]
+  name = "parcels"
+  geometry_fieldname = "geom"
+  id_fieldname = "id"
+  sql = "SELECT id, cadnum, ownership, category, purpose, area, unit_area, ST_AsBinary(geom) AS geom FROM parcels WHERE geom && !BBOX!"
+
+
+[[maps]]
+name = "mapparcel"
+center = [34.15, 45.41, 11.0] # set the center of the map so the user is auto navigated
+
+  [[maps.layers]]
+  provider_layer = "cadastre_live_bd_full.parcels"
+  min_zoom = 13
+  max_zoom = 22
+
+#[cache]
+#  type = "file"
+#  basepath = "cache"

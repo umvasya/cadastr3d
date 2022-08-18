@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset='utf-8' />
+  <title></title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.38.0/mapbox-gl.js'></script>
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.38.0/mapbox-gl.css' rel='stylesheet' />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+    .mapboxgl-popup {
+max-width: 400px;
+font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+}
+  </style>
+</head>
+
+<body>
+
+  <div id='map'></div>
+
+
+  <script>
+    // TODO: Add your mapbox token right below!
+    mapboxgl.accessToken = 'pk.eyJ1IjoidW12YXN5YSIsImEiOiJjbDVtZ3lndDMwMWV6M2JwOGhrNDRrYzE5In0.zV1YbxuSdDTMKGc9KiKBhw';
+    var map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/light-v9',
+      center: [30.523333, 50.450001],
+      zoom: 14
+    });
+
+    var nav = new mapboxgl.NavigationControl();
+    map.addControl(nav, 'top-right');
+
+    let hoveredStateId = null;
+
+    map.on('load', function () {
+      map.addSource('parcels', {
+        'type': 'vector',
+        "tiles": ["http://localhost:8081/maps/mapparcel/{z}/{x}/{y}.vector.pbf?"],
+        "tolerance": 0
+      });
+
+      map.addLayer(
+        {
+    "id": "parcels",
+    "source": "parcels",
+    "source-layer": "parcels",
+    "type": "fill",
+    "paint": {
+      "fill-color": "#e6f2ff",
+      "fill-opacity": 0.6
+    }
+  });
+  map.addLayer({
+'id': 'outline',
+'type': 'line',
+'source': 'parcels',
+"source-layer": "parcels",
+
+'layout': {},
+'paint': {
+'line-color': '#003366',
+'line-width': 1
+}
+});
+});
+
+// When a click event occurs on a feature in the states layer,
+// open a popup at the location of the click, with description
+// HTML from the click event's properties.
+map.on('click', 'parcels', (e) => {
+new mapboxgl.Popup()
+.setLngLat(e.lngLat)
+.setHTML(e.features[0].properties.cadnum)
+.addTo(map);
+});
+ 
+// Change the cursor to a pointer when
+// the mouse is over the states layer.
+map.on('mouseenter', 'parcels', () => {
+map.getCanvas().style.cursor = 'pointer';
+});
+ 
+// Change the cursor back to a pointer
+// when it leaves the states layer.
+map.on('mouseleave', 'parcels', () => {
+map.getCanvas().style.cursor = '';
+});
+
+
+
+</script>
+
+</body>

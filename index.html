@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Cadastr in 3D</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+
+<!-- Load the `mapbox-gl-geocoder` plugin. -->
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+.mapboxgl-popup {
+max-width: 400px;
+font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+}
+
+#menu {
+background: #fff;
+position: absolute;
+z-index: 1;
+top: 220px;
+right: 10px;
+border-radius: 3px;
+width: 120px;
+border: 1px solid rgba(0, 0, 0, 0.4);
+font-family: 'Open Sans', sans-serif;
+}
+ 
+#menu a {
+font-size: 13px;
+color: #404040;
+display: block;
+margin: 0;
+padding: 0;
+padding: 10px;
+text-decoration: none;
+border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+text-align: center;
+}
+ 
+#menu a:last-child {
+border: none;
+}
+ 
+#menu a:hover {
+background-color: #f8f8f8;
+color: #404040;
+}
+ 
+#menu a.active {
+background-color: #00233b;
+color: #ffffff;
+}
+ 
+#menu a.active:hover {
+background: #0d4974;
+}
+
+</style>
+
+</head>
+<body>
+
+<div id="map"></div>
+<div id="menu">
+
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoidW12YXN5YSIsImEiOiJjbDVtZ3lndDMwMWV6M2JwOGhrNDRrYzE5In0.zV1YbxuSdDTMKGc9KiKBhw';
+    const map = new mapboxgl.Map({
+        style: 'mapbox://styles/mapbox/satellite-streets-v9',
+        center: [30.523333, 50.450001],
+        zoom: 15.5,
+        pitch: 45,
+        bearing: -17.6,
+        container: 'map',
+        antialias: true
+    });
+
+    const layerList = document.getElementById('menu');
+    const inputs = layerList.getElementsByTagName('input');
+ 
+
+function getUniqueFeatures(features, comparatorProperty) {
+    const uniqueIds = new Set();
+    const uniqueFeatures = [];
+    for (const feature of features) {
+        const id = feature.comparatorProperty;
+        if (!uniqueIds.has(id)) {
+            uniqueIds.add(id);
+            uniqueFeatures.push(feature);
+            }
+        }
+        return uniqueFeatures;
+        }
+
+for (const input of inputs) {
+input.onclick = (layer) => {
+const layerId = layer.target.id;
+map.setStyle('mapbox://styles/mapbox/' + layerId);
+};
+}
+
+    map.on('load', () => {
+        // Insert the layer beneath any symbol layer.
+        const layers = map.getStyle().layers;
+        const labelLayerId = layers.find(
+            (layer) => layer.type === 'symbol' && layer.layout['text-field']
+        ).id;
+
+        // Add fogg
+        map.setFog({
+        'range': [-1, 7],
+        'horizon-blend': 0.2,
+        'color': 'black',
+        'high-color': '#add8e6',
+        'space-color': 'black',
+        'star-intensity': 0.5
+        });
+        
+        // Add source
+        map.addSource('parcels', {
+        'type': 'vector',
+        "tiles": ["http://localhost:8081/maps/mapparcel/{z}/{x}/{y}.vector.pbf?"],
+        "tolerance": 0
+      });
+
+        
+        map.addLayer(
+        {
+          "id": "parcels-fill",
+          "source": "parcels",
+          "source-layer": "parcels",
+          "type": "fill",
+          "paint": {
+            "fill-color": "#3D85C6",
+            "fill-opacity": 0.3
+          }});
+          
+        map.addLayer({
+          'id': 'parcels-outline',
+          'type': 'line',
+          'source': 'parcels',
+          "source-layer": "parcels",
+          'layout': {},
+          'paint': {
+          'line-color': '#ffffff',
+          'line-width': 1.5
+          }});
+
+          
+        map.addLayer(
+            {
+                'id': 'parcels-highlighted',
+                'type': 'fill',
+                'source': 'parcels',
+                'source-layer': 'parcels',
+                'paint': {
+                'fill-outline-color': '#484896',
+                'fill-color': '#00eaff',
+                'fill-opacity': 0.5
+            },
+                // Display none by adding a
+                // filter with an empty string.
+                'filter': ['==', 'cadnum', '']
+                });
+        
+        map.addLayer(
+            {
+                'id': 'parcels-highlighted-long',
+                'type': 'fill',
+                'source': 'parcels',
+                'source-layer': 'parcels',
+                'paint': {
+                'fill-outline-color': '#484896',
+                'fill-color': '#6b0d75',
+                'fill-opacity': 0.6
+            },
+                // Display none by adding a
+                // filter with an empty string.
+                'filter': ['==', 'cadnum', '']
+                });
+
+        // The 'building' layer in the Mapbox Streets
+        map.addLayer(
+            {
+                'id': '3D будівлі',
+                'source': 'composite',
+                'source-layer': 'building',
+                'filter': ['==', 'extrude', 'true'],
+                'type': 'fill-extrusion',
+                'minzoom': 15,
+                'paint': {
+                    'fill-extrusion-color': '#F3F6F4',
+
+                    // Use an 'interpolate' expression to
+                    // add a smooth transition effect to
+                    // the buildings as the user zooms in.
+                    'fill-extrusion-height': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        15,
+                        0,
+                        15.05,
+                        ['get', 'height']
+                    ],
+                    'fill-extrusion-base': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        15,
+                        0,
+                        15.05,
+                        ['get', 'min_height']
+                    ],
+                    'fill-extrusion-opacity': 0.8
+                }
+            },
+
+        );
+    });
+
+    //Add controls
+    map.addControl(new MapboxGeocoder({accessToken: mapboxgl.accessToken,mapboxgl: mapboxgl}), 'top-left');
+    map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    map.addControl(new mapboxgl.GeolocateControl({positionOptions: {
+        enableHighAccuracy: true},
+        // When active the map will receive updates to the device's location as it changes.
+        trackUserLocation: true,
+        // Draw an arrow next to the location dot to indicate which direction the device is heading.
+        showUserHeading: true
+        }, 'top-left'));
+    
+// Change the cursor to a pointer when
+// the mouse is over the states layer.
+map.on('mouseenter', 'parcels-fill', () => {
+map.getCanvas().style.cursor = 'pointer';
+});
+ // Change the cursor back to a pointer
+// when it leaves the states layer.
+map.on('mouseleave', 'parcels-fill', () => {
+map.getCanvas().style.cursor = '';
+});
+
+
+map.on('mousemove', 'parcels-fill', (e) => {
+
+// Use the first found feature.
+const feature = e.features[0];
+//console.log('feature cadnum ', feature.properties.cadnum)
+ 
+// Query the counties layer visible in the map.
+// Only onscreen features are returned.
+// Use filter to collect only results
+// with the same county name.
+const relatedParcels = map.querySourceFeatures('parcels-fill', {
+sourceLayer: 'parcels',
+filter: ['in', 'cadnum', feature.properties.cadnum]
+});
+
+const uniqueCounties = getUniqueFeatures(relatedParcels, 'cadnum');
+
+ 
+// Add features with the same county name
+// to the highlighted layer.
+map.setFilter('parcels-highlighted', ['in','cadnum',feature.properties.cadnum]);
+ 
+map.on('mouseleave', 'parcels-fill', () => {
+map.setFilter('parcels-highlighted', ['==', 'cadnum', '']);
+});
+
+});
+
+
+// When a click event occurs on a feature in the states layer,
+// open a popup at the location of the click, with description
+// HTML from the click event's properties.
+map.on('click', 'parcels-fill', (e) => {
+const feature = e.features[0];
+const relatedParcels = map.querySourceFeatures('parcels-fill', {
+sourceLayer: 'parcels',
+filter: ['in', 'cadnum', feature.properties.cadnum]});
+
+// Remove duplicates by checking for matching FIPS county ID.
+const uniqueCounties = getUniqueFeatures(relatedParcels, 'cadnum');
+ 
+// Add features with the same county name
+// to the highlighted layer.
+map.setFilter('parcels-highlighted-long', ['in','cadnum',feature.properties.cadnum]);
+new mapboxgl.Popup()
+.setLngLat(e.lngLat)
+.setHTML('<b>Кадастровий номер: </b>' + e.features[0].properties.cadnum + '<hr>' + '<b>Власність: </b>' + e.features[0].properties.ownership + '<hr>' +
+'<b>Категорія: </b>' + e.features[0].properties.category + '<hr>' +
+'<b>Цільове призначення: </b>' + e.features[0].properties.purpose + '<hr>' +
+'<b>Площа: </b>' + e.features[0].properties.area  + e.features[0].properties.unit_area)
+.addTo(map);
+//console.log(e.features[0])
+});
+
+// After the last frame rendered before the map enters an "idle" state.
+map.on('idle', () => {
+// If these two layers were not added to the map, abort
+if (!map.getLayer('3D будівлі')) {
+return;
+}
+ 
+// Enumerate ids of the layers.
+const toggleableLayerIds = ['3D будівлі'];
+ 
+// Set up the corresponding toggle button for each layer.
+for (const id of toggleableLayerIds) {
+// Skip layers that already have a button set up.
+if (document.getElementById(id)) {
+continue;
+}
+ 
+// Create a link.
+const link = document.createElement('a');
+link.id = id;
+link.href = '#';
+link.textContent = id;
+link.className = 'active';
+ 
+// Show or hide layer when the toggle is clicked.
+link.onclick = function (e) {
+const clickedLayer = this.textContent;
+e.preventDefault();
+e.stopPropagation();
+ 
+const visibility = map.getLayoutProperty(
+clickedLayer,
+'visibility'
+);
+ 
+// Toggle layer visibility by changing the layout object's visibility property.
+if (visibility === 'visible') {
+map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+this.className = '';
+} else {
+this.className = 'active';
+map.setLayoutProperty(
+clickedLayer,
+'visibility',
+'visible'
+);
+}
+};
+ 
+const layers = document.getElementById('menu');
+layers.appendChild(link);
+}
+});
+
+</script>
+
+</body>
+</html>

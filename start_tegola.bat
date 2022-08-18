@@ -1,0 +1,1 @@
+start "TEGOLA" "d:\temp\tegola\tegola.exe" serve --config=config.toml
